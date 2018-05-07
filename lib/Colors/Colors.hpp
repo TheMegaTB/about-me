@@ -14,13 +14,15 @@ const struct gammaValuesStruct {
 float getGammaCorrected(uint8_t value, double gammaValue);
 class RGBWColor;
 
-template<typename C>
 class Color {
-  virtual RGBWColor toRGBW() = 0;
-  virtual C getIntermediateColor(C other, double mix); // mix = 0 -> this || mix = 1 -> other
+public:
+    virtual RGBWColor* toRGBW() = 0;
+    virtual Color* getIntermediateColor(Color* other, double mix) = 0; // mix = 0 -> this || mix = 1 -> other
+
+    virtual ~Color() {}
 };
 
-class RGBWColor: public Color<RGBWColor> {
+class RGBWColor: public Color {
 public:
   uint8_t r;
   uint8_t g;
@@ -29,14 +31,14 @@ public:
 
   RGBWColor(uint8_t r, uint8_t g, uint8_t b, uint8_t w) : r(r), g(g), b(b), w(w) {};
 
-  RGBWColor toRGBW() { return RGBWColor(this->r, this->g, this->b, this->w); }
+  RGBWColor* toRGBW() { return new RGBWColor(this->r, this->g, this->b, this->w); }
 
-  RGBWColor getIntermediateColor(RGBWColor other, double mix);
+  RGBWColor* getCorrected();
 
-  RGBWColor getCorrected();
+  Color* getIntermediateColor(Color* other, double mix);
 };
 
-class RGBColor: public Color<RGBColor> {
+class RGBColor: public Color {
 public:
   uint8_t r;
   uint8_t g;
@@ -44,9 +46,9 @@ public:
 
   RGBColor(uint8_t r, uint8_t g, uint8_t b) : r(r), g(g), b(b) {};
 
-  RGBWColor toRGBW() {
+  RGBWColor* toRGBW() {
     uint8_t minValue = min(this->r, min(this->g, this->b));
-    return RGBWColor(
+    return new RGBWColor(
       this->r - minValue,
       this->g - minValue,
       this->b - minValue,
@@ -54,16 +56,10 @@ public:
     );
   }
 
-  RGBColor getIntermediateColor(RGBColor other, double mix) {
-    uint16_t r = this->r * (1 - mix) + other.r * mix;
-    uint16_t g = this->g * (1 - mix) + other.g * mix;
-    uint16_t b = this->b * (1 - mix) + other.b * mix;
-
-    return RGBColor(r, g, b);
-  }
+  Color* getIntermediateColor(Color* other, double mix);
 };
 
-class HSIColor: public Color<HSIColor> {
+class HSIColor: public Color {
 public:
   float h; // Hue
   float s; // Saturation
@@ -75,7 +71,7 @@ public:
       i(i > 0 ? (i < 1 ? i : 1) : 0)
     {};
 
-  RGBWColor toRGBW() {
+  RGBWColor* toRGBW() {
     int r, g, b;
     float H = 3.14159 * this->h / 180.0; // Convert to radians.
     float S = this->s;
@@ -98,7 +94,7 @@ public:
       g = 255*I/3*(1-S);
     }
 
-    return RGBWColor(
+    return new RGBWColor(
       getGammaCorrected(r, gammaValues.r),
       getGammaCorrected(g, gammaValues.g),
       getGammaCorrected(b, gammaValues.b),
@@ -106,22 +102,7 @@ public:
     );
   }
 
-  HSIColor getIntermediateColor(HSIColor other, double mix) {
-    float hueDistance = abs(other.h - this->h);
-    if (this->h > other.h) {
-      float newDistance = abs((other.h + 360) - this->h);
-      if (newDistance < hueDistance) other.h += 360;
-    } else {
-      float newDistance = abs(other.h - (this->h + 360));
-      if (newDistance < hueDistance) this->h += 360;
-    }
-
-    float h = this->h * (1 - mix) + other.h * mix;
-    float s = this->s * (1 - mix) + other.s * mix;
-    float i = this->i * (1 - mix) + other.i * mix;
-
-    return HSIColor(h, s, i);
-  }
+  Color* getIntermediateColor(Color* other, double mix);
 };
 
 #endif

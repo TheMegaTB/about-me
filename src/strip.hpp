@@ -11,28 +11,27 @@ NeoPixelBus<NeoGrbwFeature, Neo800KbpsMethod> strip(STRIP_LED_COUNT);
 
 typedef uint16_t led_index;
 
-template<typename C, typename R>
-void setColorInRange(C color, R range, bool show) {
-    RGBWColor rgbwColor = color.toRGBW();
-    RgbwColor c = RgbwColor(rgbwColor.r, rgbwColor.g, rgbwColor.b, rgbwColor.w);
-    range.forEach([&](led_index i) {
+void setColorInRange(Color* color, Range* range, bool show) {
+    // TODO MARK Source of evil #2
+    // RGBWColor* rgbwColor = color->toRGBW();
+    // RgbwColor c = RgbwColor(rgbwColor->r, rgbwColor->g, rgbwColor->b, rgbwColor->w);
+    RgbwColor c(0, 0, 0, 0);
+    range->forEach([&](led_index i) {
         strip.SetPixelColor(i, c);
     });
     if (show) strip.Show();
 }
 
-template<typename C, typename R>
-void setColorInRange(C color, R range) {
+void setColorInRange(Color* color, Range* range) {
     setColorInRange(color, range, true);
 }
 
-template<typename C>
-void setColor(C color, bool show) {
-    setColorInRange(color, StartEndRange(0, STRIP_LED_COUNT), show);
+void setColor(Color* color, bool show) {
+    auto fullStripRange = StartEndRange(0, STRIP_LED_COUNT);
+    setColorInRange(color, &fullStripRange, show);
 }
 
-template<typename C>
-void setColor(C color) {
+void setColor(Color* color) {
     setColor(color, true);
 }
 

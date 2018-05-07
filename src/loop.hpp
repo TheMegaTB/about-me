@@ -10,24 +10,24 @@
 
 // ---- Random junk that needs to go elsewhere
 
-std::vector<RGBWColor> sunKeyframes = {
-    RGBWColor(  0,   0,   0,   0),
-    RGBWColor(  0,   0, 255,   0),
-    RGBWColor(255,   0, 255,   0),
-    RGBWColor(255,   0,   0, 150),
-    RGBWColor(255, 170,   0, 150),
-    RGBWColor(255, 170, 255, 255),
-    RGBWColor(255, 255, 255, 255)
+std::vector<RGBWColor*> sunKeyframes = {
+    new RGBWColor(  0,   0,   0,   0),
+    new RGBWColor(  0,   0, 255,   0),
+    new RGBWColor(255,   0, 255,   0),
+    new RGBWColor(255,   0,   0, 150),
+    new RGBWColor(255, 170,   0, 150),
+    new RGBWColor(255, 170, 255, 255),
+    new RGBWColor(255, 255, 255, 255)
 };
 
-std::vector<RGBWColor> ambientKeyframes = {
-    RGBWColor(  0,   0,   0,   0),
-    RGBWColor(  0,   0, 255,   0),
-    RGBWColor(  0,   0, 255,   0),
-    RGBWColor( 40,   0, 255,   0),
-    RGBWColor(170,  20, 255,  15),
-    RGBWColor(255,  40, 255,  80),
-    RGBWColor(255, 255, 255, 255)
+std::vector<RGBWColor*> ambientKeyframes = {
+    new RGBWColor(  0,   0,   0,   0),
+    new RGBWColor(  0,   0, 255,   0),
+    new RGBWColor(  0,   0, 255,   0),
+    new RGBWColor( 40,   0, 255,   0),
+    new RGBWColor(170,  20, 255,  15),
+    new RGBWColor(255,  40, 255,  80),
+    new RGBWColor(255, 255, 255, 255)
 };
 
 int currentKeyframe = -1;
@@ -35,17 +35,14 @@ uint16_t keyframeDuration = 15000;
 uint16_t currentKeyframePassedTime = keyframeDuration + 1;
 
 // Sun properties
-StartEndRange sunRange(125, 175);
+StartEndRange* sunRange = new StartEndRange(125, 175);
 
-template<typename FadeColor, typename FadeRange>
 struct RangedFade {
-    ColorFade<FadeColor> fade;
-    FadeRange range;
+    ColorFade fade;
+    Range* range;
 };
 
-// TODO Find a way to use *any* kind of RangedFade here.
-std::vector<RangedFade<RGBWColor, StartEndRange>> fades;
-// std::vector<ColorFade<HSIColor>> fades;
+std::vector<RangedFade> fades;
 
 // ---- Loop functions ----
 
@@ -62,18 +59,19 @@ void handleAnimation() {
         if (currentKeyframePassedTime > keyframeDuration) {
             currentKeyframePassedTime = 0;
             currentKeyframe++;
+            Serial.println(currentKeyframe);
 
             // Queue the fade to the next keyframe
             if (currentKeyframe < 6) {
                 // Ambient
                 fades.push_back({
-                    ColorFade<RGBWColor>(ambientKeyframes[currentKeyframe], ambientKeyframes[currentKeyframe + 1], keyframeDuration),
-                    StartEndRange(0, STRIP_LED_COUNT)
+                    ColorFade(ambientKeyframes[currentKeyframe], ambientKeyframes[currentKeyframe + 1], keyframeDuration),
+                    new StartEndRange(0, STRIP_LED_COUNT)
                 });
 
                 // Sun
                 fades.push_back({
-                    ColorFade<RGBWColor>(sunKeyframes[currentKeyframe], sunKeyframes[currentKeyframe + 1], keyframeDuration),
+                    ColorFade(sunKeyframes[currentKeyframe], sunKeyframes[currentKeyframe + 1], keyframeDuration),
                     sunRange
                 });
             }
@@ -82,17 +80,20 @@ void handleAnimation() {
 }
 
 void handleFade() {
-    auto it = fades.begin();
-    while(it != fades.end()) {
-        setColorInRange(it->fade.step(TARGET_LOOP_MILLIS), it->range, false);
+    if (fades.size() > 0) {
+        auto it = fades.begin();
+        while(it != fades.end()) {
+            setColorInRange(it->fade.step(TARGET_LOOP_MILLIS), it->range, false);
 
-        if (it->fade.completed) {
-            it = fades.erase(it);
-        } else {
-            it++;
+            if (it->fade.completed) {
+                Serial.println("Fade reset.");
+                it->fade.reset();
+                // Serial.println("Fade done.");
+                // it = fades.erase(it);
+            } else it++;
         }
+        strip.Show();
     }
-    strip.Show();
 }
 
 

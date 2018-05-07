@@ -7,6 +7,11 @@
 #include "strip.hpp"
 #include "loop.hpp"
 
+auto blueBlack = new HSIColor(240, 1, 0);
+auto blue = new HSIColor(240, 1, 1);
+auto fade = ColorFade(blueBlack, blue, 2000);
+auto range = new StartEndRange(150, 200);
+
 void setup() {
     setupSerial();
     setupWiFi();
@@ -16,21 +21,23 @@ void setup() {
 
     Serial.println("Setup done.");
 
-    // auto fade = ColorFade<HSIColor>(HSIColor(240, 1, 0), HSIColor(240, 1, 1), 2000);
-    // auto range = StartEndRange(150, 200);
-    // fades.push_back({ fade, range });
+    auto red = HSIColor(0, 1, 1);
+    auto black = HSIColor(0, 1, 0);
 
-    setColor(HSIColor(0, 1, 1));
+    delay(500);
+    setColor(&red);
     delay(1000);
-    setColor(HSIColor(0, 1, 0));
+    setColor(&black);
     delay(2000);
+
+    fades.push_back({ fade, range });
 
     Serial.println("Beginning loop ...");
 }
 
 void loop() {
     handleOTA();
-    handleAnimation();
+    // handleAnimation();
     handleFade();
-    handleLoopDuration();
+    // handleLoopDuration();
 }
